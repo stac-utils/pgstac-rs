@@ -509,4 +509,25 @@ mod tests {
         };
         assert!(client.search(search).await.unwrap().items.is_empty());
     }
+
+    #[pgstac_test]
+    async fn search_datetime(client: Client<Transaction<'_>>) {
+        let collection = Collection::new("collection-id", "a description");
+        client.add_collection(collection).await.unwrap();
+        let mut item = Item::new("an-id");
+        item.collection = Some("collection-id".to_string());
+        item.geometry = Some(longmont());
+        item.properties.datetime = Some("2023-01-07T00:00:00Z".to_string());
+        client.add_item(item.clone()).await.unwrap();
+        let search = Search {
+            datetime: "2023-01-07T00:00:00Z".to_string(),
+            ..Default::default()
+        };
+        assert_eq!(client.search(search).await.unwrap().items.len(), 1);
+        let search = Search {
+            datetime: "2023-01-08T00:00:00Z".to_string(),
+            ..Default::default()
+        };
+        assert!(client.search(search).await.unwrap().items.is_empty());
+    }
 }
