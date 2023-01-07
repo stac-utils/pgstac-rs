@@ -2,7 +2,7 @@ use geojson::Geometry;
 use serde::Serialize;
 
 /// Search.
-#[derive(Debug, Serialize, Default)]
+#[derive(Clone, Debug, Serialize, Default)]
 pub struct Search {
     /// The maximum number of results to return (page size).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -32,4 +32,8 @@ pub struct Search {
     /// Array of one or more Collection IDs that each matching Item must be in.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub collections: Vec<String>,
+
+    /// The token indicating that this is a continuation of a search.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub token: Option<String>,
 }

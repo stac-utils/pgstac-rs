@@ -31,6 +31,7 @@
 #![deny(missing_docs)]
 
 mod client;
+mod page;
 mod search;
 
-pub use {client::Client, search::Search};
+pub use {client::Client, page::Page, search::Search};

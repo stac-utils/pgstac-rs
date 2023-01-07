@@ -1,6 +1,6 @@
-use crate::Search;
+use crate::{Page, Search};
 use serde::de::DeserializeOwned;
-use stac::{Collection, Item, ItemCollection};
+use stac::{Collection, Item};
 use thiserror::Error;
 use tokio_postgres::{
     types::{ToSql, WasNull},
@@ -133,7 +133,7 @@ impl<C: GenericClient> Client<C> {
     }
 
     /// Searches for items.
-    pub async fn search(&self, search: Search) -> Result<ItemCollection> {
+    pub async fn search(&self, search: Search) -> Result<Page> {
         let search = serde_json::to_value(search)?;
         self.value("search", &[&search]).await
     }
@@ -439,7 +439,7 @@ mod tests {
             .search(Search::default())
             .await
             .unwrap()
-            .items
+            .items()
             .is_empty());
         let collection = Collection::new("collection-id", "a description");
         client.add_collection(collection).await.unwrap();
@@ -448,7 +448,7 @@ mod tests {
         item.geometry = Some(longmont());
         client.add_item(item.clone()).await.unwrap();
         assert_eq!(
-            client.search(Search::default()).await.unwrap().items[0],
+            client.search(Search::default()).await.unwrap().items()[0],
             item
         );
     }
@@ -465,12 +465,12 @@ mod tests {
             ids: vec!["an-id".to_string()],
             ..Default::default()
         };
-        assert_eq!(client.search(search).await.unwrap().items[0], item);
+        assert_eq!(client.search(search).await.unwrap().items()[0], item);
         let search = Search {
             ids: vec!["not-an-id".to_string()],
             ..Default::default()
         };
-        assert!(client.search(search).await.unwrap().items.is_empty());
+        assert!(client.search(search).await.unwrap().items().is_empty());
     }
 
     #[pgstac_test]
@@ -485,12 +485,12 @@ mod tests {
             collections: vec!["collection-id".to_string()],
             ..Default::default()
         };
-        assert_eq!(client.search(search).await.unwrap().items[0], item);
+        assert_eq!(client.search(search).await.unwrap().items()[0], item);
         let search = Search {
             collections: vec!["not-an-id".to_string()],
             ..Default::default()
         };
-        assert!(client.search(search).await.unwrap().items.is_empty());
+        assert!(client.search(search).await.unwrap().items().is_empty());
     }
 
     #[pgstac_test]
@@ -507,7 +507,9 @@ mod tests {
             limit: Some(1),
             ..Default::default()
         };
-        assert_eq!(client.search(search).await.unwrap().items.len(), 1);
+        let page = client.search(search).await.unwrap();
+        assert_eq!(page.items().len(), 1);
+        assert_eq!(page.context.limit, 1);
     }
 
     #[pgstac_test]
@@ -522,12 +524,12 @@ mod tests {
             bbox: vec![-106., 40., -105., 41.],
             ..Default::default()
         };
-        assert_eq!(client.search(search).await.unwrap().items.len(), 1);
+        assert_eq!(client.search(search).await.unwrap().items().len(), 1);
         let search = Search {
             bbox: vec![-106., 41., -105., 42.],
             ..Default::default()
         };
-        assert!(client.search(search).await.unwrap().items.is_empty());
+        assert!(client.search(search).await.unwrap().items().is_empty());
     }
 
     #[pgstac_test]
@@ -543,12 +545,12 @@ mod tests {
             datetime: "2023-01-07T00:00:00Z".to_string(),
             ..Default::default()
         };
-        assert_eq!(client.search(search).await.unwrap().items.len(), 1);
+        assert_eq!(client.search(search).await.unwrap().items().len(), 1);
         let search = Search {
             datetime: "2023-01-08T00:00:00Z".to_string(),
             ..Default::default()
         };
-        assert!(client.search(search).await.unwrap().items.is_empty());
+        assert!(client.search(search).await.unwrap().items().is_empty());
     }
 
     #[pgstac_test]
@@ -569,7 +571,7 @@ mod tests {
             ]]))),
             ..Default::default()
         };
-        assert_eq!(client.search(search).await.unwrap().items.len(), 1);
+        assert_eq!(client.search(search).await.unwrap().items().len(), 1);
         let search = Search {
             intersects: Some(Geometry::new(Value::Polygon(vec![vec![
                 vec![-104., 40.],
@@ -580,6 +582,32 @@ mod tests {
             ]]))),
             ..Default::default()
         };
-        assert!(client.search(search).await.unwrap().items.is_empty());
+        assert!(client.search(search).await.unwrap().items().is_empty());
+    }
+
+    #[pgstac_test]
+    async fn pagination(client: Client<Transaction<'_>>) {
+        let collection = Collection::new("collection-id", "a description");
+        client.add_collection(collection).await.unwrap();
+        let mut item = Item::new("an-id");
+        item.collection = Some("collection-id".to_string());
+        item.properties.datetime = Some("2023-01-08T00:00:00Z".to_string());
+        item.geometry = Some(longmont());
+        client.add_item(item.clone()).await.unwrap();
+        item.id = "another-id".to_string();
+        item.properties.datetime = Some("2023-01-07T00:00:00Z".to_string());
+        client.add_item(item).await.unwrap();
+        let mut search = Search {
+            limit: Some(1),
+            ..Default::default()
+        };
+        let page = client.search(search.clone()).await.unwrap();
+        assert_eq!(page.items()[0].id, "an-id");
+        search.token = page.next_token();
+        let page = client.search(search.clone()).await.unwrap();
+        assert_eq!(page.items()[0].id, "another-id");
+        search.token = page.prev_token();
+        let page = client.search(search).await.unwrap();
+        assert_eq!(page.items()[0].id, "an-id");
     }
 }
