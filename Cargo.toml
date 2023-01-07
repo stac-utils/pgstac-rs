@@ -7,7 +7,7 @@ description = "Rust interface for pgstac"
 homepage = "https://github.com/gadomski/pgstac-rs"
 repository = "https://github.com/gadomski/pgstac-rs"
 license = "MIT OR Apache-2.0"
-keywords = ["geospatial", "stac", "metadata", "geo", "raster", "database"]
+keywords = ["geospatial", "stac", "metadata", "raster", "database"]
 categories = ["database", "data-structures", "science"]
 
 [dependencies]
