@@ -1,5 +1,5 @@
 use serde::de::DeserializeOwned;
-use stac::Collection;
+use stac::{Collection, Item};
 use thiserror::Error;
 use tokio_postgres::{
     types::{ToSql, WasNull},
@@ -60,6 +60,15 @@ impl<C: GenericClient> Client<C> {
 
     pub async fn delete_collection(&self, id: &str) -> Result<()> {
         self.void("delete_collection", &[&id]).await
+    }
+
+    pub async fn item(&self, id: &str, collection: &str) -> Result<Option<Item>> {
+        self.opt("get_item", &[&id, &collection]).await
+    }
+
+    pub async fn add_item(&self, item: Item) -> Result<()> {
+        let item = serde_json::to_value(item)?;
+        self.void("create_item", &[&item]).await
     }
 
     async fn query_one<'a>(
@@ -128,9 +137,10 @@ mod tests {
     use async_once::AsyncOnce;
     use bb8::Pool;
     use bb8_postgres::PostgresConnectionManager;
+    use geojson::{Geometry, Value};
     use lazy_static::lazy_static;
     use pgstac_test::pgstac_test;
-    use stac::Collection;
+    use stac::{Collection, Item};
     use tokio_postgres::{NoTls, Transaction};
 
     lazy_static! {
@@ -142,6 +152,10 @@ mod tests {
                     PostgresConnectionManager::new_from_stringlike(config, NoTls).unwrap();
                 Pool::builder().build(manager).await.unwrap()
             });
+    }
+
+    fn longmont() -> Geometry {
+        Geometry::new(Value::Point(vec![40.1672, -105.1019]))
     }
 
     #[pgstac_test]
@@ -234,5 +248,34 @@ mod tests {
     #[pgstac_test]
     async fn delete_collection_does_not_exist(client: Client<Transaction<'_>>) {
         assert!(client.delete_collection("not-an-id").await.is_err());
+    }
+
+    #[pgstac_test]
+    async fn item(client: Client<Transaction<'_>>) {
+        assert!(client
+            .item("an-id", "collection-id")
+            .await
+            .unwrap()
+            .is_none());
+        let collection = Collection::new("collection-id", "a description");
+        client.add_collection(collection).await.unwrap();
+        let mut item = Item::new("an-id");
+        item.collection = Some("collection-id".to_string());
+        item.geometry = Some(longmont());
+        client.add_item(item.clone()).await.unwrap();
+        assert_eq!(
+            client
+                .item("an-id", "collection-id")
+                .await
+                .unwrap()
+                .unwrap(),
+            item
+        );
+    }
+
+    #[pgstac_test]
+    async fn item_without_collection(client: Client<Transaction<'_>>) {
+        let item = Item::new("an-id");
+        assert!(client.add_item(item.clone()).await.is_err());
     }
 }
