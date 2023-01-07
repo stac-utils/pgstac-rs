@@ -454,7 +454,7 @@ mod tests {
     }
 
     #[pgstac_test]
-    async fn search_by_id(client: Client<Transaction<'_>>) {
+    async fn search_ids(client: Client<Transaction<'_>>) {
         let collection = Collection::new("collection-id", "a description");
         client.add_collection(collection).await.unwrap();
         let mut item = Item::new("an-id");
@@ -468,6 +468,26 @@ mod tests {
         assert_eq!(client.search(search).await.unwrap().items[0], item);
         let search = Search {
             ids: vec!["not-an-id".to_string()],
+            ..Default::default()
+        };
+        assert!(client.search(search).await.unwrap().items.is_empty());
+    }
+
+    #[pgstac_test]
+    async fn search_collections(client: Client<Transaction<'_>>) {
+        let collection = Collection::new("collection-id", "a description");
+        client.add_collection(collection).await.unwrap();
+        let mut item = Item::new("an-id");
+        item.collection = Some("collection-id".to_string());
+        item.geometry = Some(longmont());
+        client.add_item(item.clone()).await.unwrap();
+        let search = Search {
+            collections: vec!["collection-id".to_string()],
+            ..Default::default()
+        };
+        assert_eq!(client.search(search).await.unwrap().items[0], item);
+        let search = Search {
+            collections: vec!["not-an-id".to_string()],
             ..Default::default()
         };
         assert!(client.search(search).await.unwrap().items.is_empty());

@@ -28,4 +28,8 @@ pub struct Search {
     /// Array of Item ids to return.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub ids: Vec<String>,
+
+    /// Array of one or more Collection IDs that each matching Item must be in.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub collections: Vec<String>,
 }
