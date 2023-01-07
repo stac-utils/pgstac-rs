@@ -698,4 +698,30 @@ mod tests {
         let page = client.search(search).await.unwrap();
         assert_eq!(page.features.len(), 1);
     }
+
+    #[pgstac_test]
+    async fn query(client: Client<Transaction<'_>>) {
+        let collection = Collection::new("collection-id", "a description");
+        client.add_collection(collection).await.unwrap();
+        let mut item = Item::new("a");
+        item.collection = Some("collection-id".to_string());
+        item.geometry = Some(longmont());
+        item.properties
+            .additional_fields
+            .insert("foo".into(), 42.into());
+        client.add_item(item.clone()).await.unwrap();
+        item.id = "b".to_string();
+        item.properties
+            .additional_fields
+            .insert("foo".into(), 43.into());
+        client.add_item(item).await.unwrap();
+        let mut query = Map::new();
+        query.insert("foo".into(), json!({"eq": 42}));
+        let search = Search {
+            query: Some(query),
+            ..Default::default()
+        };
+        let page = client.search(search).await.unwrap();
+        assert_eq!(page.features.len(), 1);
+    }
 }

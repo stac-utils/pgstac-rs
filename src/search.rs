@@ -50,4 +50,8 @@ pub struct Search {
     /// The CQL filter.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub filter: Option<Map<String, Value>>,
+
+    /// The query.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub query: Option<Map<String, Value>>,
 }
