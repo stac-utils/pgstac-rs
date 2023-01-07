@@ -140,6 +140,14 @@ mod tests {
     }
 
     #[pgstac_test]
+    async fn add_collection_duplicate(client: Client<Transaction<'_>>) {
+        assert!(client.collections().await.unwrap().is_empty());
+        let collection = Collection::new("an-id", "a description");
+        client.add_collection(collection.clone()).await.unwrap();
+        assert!(client.add_collection(collection).await.is_err());
+    }
+
+    #[pgstac_test]
     async fn update_collection(client: Client<Transaction<'_>>) {
         let mut collection = Collection::new("an-id", "a description");
         client.add_collection(collection.clone()).await.unwrap();
