@@ -145,6 +145,12 @@ impl<C: GenericClient> Client<C> {
         self.void("update_item", &[&item]).await
     }
 
+    /// Upserts an item.
+    pub async fn upsert_item(&self, item: Item) -> Result<()> {
+        let item = serde_json::to_value(item)?;
+        self.void("upsert_item", &[&item]).await
+    }
+
     async fn query_one<'a>(
         &'a self,
         function: &str,
@@ -378,5 +384,16 @@ mod tests {
                 .additional_fields["foo"],
             "bar"
         );
+    }
+
+    #[pgstac_test]
+    async fn upsert_item(client: Client<Transaction<'_>>) {
+        let collection = Collection::new("collection-id", "a description");
+        client.add_collection(collection).await.unwrap();
+        let mut item = Item::new("an-id");
+        item.collection = Some("collection-id".to_string());
+        item.geometry = Some(longmont());
+        client.upsert_item(item.clone()).await.unwrap();
+        client.upsert_item(item).await.unwrap();
     }
 }
