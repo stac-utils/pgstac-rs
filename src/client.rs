@@ -232,7 +232,7 @@ mod tests {
     }
 
     fn longmont() -> Geometry {
-        Geometry::new(Value::Point(vec![40.1672, -105.1019]))
+        Geometry::new(Value::Point(vec![-105.1019, 40.1672]))
     }
 
     #[pgstac_test]
@@ -499,12 +499,12 @@ mod tests {
         item.geometry = Some(longmont());
         client.add_item(item.clone()).await.unwrap();
         let search = Search {
-            bbox: vec![40., -106., 41., -105.],
+            bbox: vec![-106., 40., -105., 41.],
             ..Default::default()
         };
         assert_eq!(client.search(search).await.unwrap().items.len(), 1);
         let search = Search {
-            bbox: vec![41., -106., 42., -105.],
+            bbox: vec![-106., 41., -105., 42.],
             ..Default::default()
         };
         assert!(client.search(search).await.unwrap().items.is_empty());
@@ -526,6 +526,38 @@ mod tests {
         assert_eq!(client.search(search).await.unwrap().items.len(), 1);
         let search = Search {
             datetime: "2023-01-08T00:00:00Z".to_string(),
+            ..Default::default()
+        };
+        assert!(client.search(search).await.unwrap().items.is_empty());
+    }
+
+    #[pgstac_test]
+    async fn search_intersects(client: Client<Transaction<'_>>) {
+        let collection = Collection::new("collection-id", "a description");
+        client.add_collection(collection).await.unwrap();
+        let mut item = Item::new("an-id");
+        item.collection = Some("collection-id".to_string());
+        item.geometry = Some(longmont());
+        client.add_item(item.clone()).await.unwrap();
+        let search = Search {
+            intersects: Some(Geometry::new(Value::Polygon(vec![vec![
+                vec![-106., 40.],
+                vec![-106., 41.],
+                vec![-105., 41.],
+                vec![-105., 40.],
+                vec![-106., 40.],
+            ]]))),
+            ..Default::default()
+        };
+        assert_eq!(client.search(search).await.unwrap().items.len(), 1);
+        let search = Search {
+            intersects: Some(Geometry::new(Value::Polygon(vec![vec![
+                vec![-104., 40.],
+                vec![-104., 41.],
+                vec![-103., 41.],
+                vec![-103., 40.],
+                vec![-104., 40.],
+            ]]))),
             ..Default::default()
         };
         assert!(client.search(search).await.unwrap().items.is_empty());
