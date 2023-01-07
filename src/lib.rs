@@ -9,10 +9,16 @@ use tokio_postgres::{
 #[derive(Debug, Error)]
 pub enum Error {
     #[error(transparent)]
+    Boxed(#[from] Box<dyn std::error::Error + Sync + Send>),
+
+    #[error(transparent)]
     SerdeJson(#[from] serde_json::Error),
 
     #[error(transparent)]
     TokioPostgres(#[from] tokio_postgres::Error),
+
+    #[error("unknown error")]
+    Unknown,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -108,11 +114,14 @@ impl<C: GenericClient> Client<C> {
         match row.try_get(function) {
             Ok(value) => serde_json::from_value(value).map_err(Error::from),
             Err(err) => {
-                let err = err.into_source().unwrap(); // TODO don't unwrap
-                if err.downcast::<WasNull>().is_ok() {
-                    Ok(None)
+                if let Some(err) = err.into_source() {
+                    if err.downcast_ref::<WasNull>().is_some() {
+                        Ok(None)
+                    } else {
+                        Err(Error::from(err))
+                    }
                 } else {
-                    unimplemented!() // TODO implement
+                    Err(Error::Unknown)
                 }
             }
         }
