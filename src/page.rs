@@ -1,12 +1,15 @@
 use serde::Deserialize;
-use stac::{Item, ItemCollection};
+use serde_json::{Map, Value};
 
 /// A page of search results.
 #[derive(Debug, Deserialize)]
 pub struct Page {
-    /// The STAC item collection.
-    #[serde(flatten)]
-    pub item_collection: ItemCollection,
+    /// This should always be "FeatureCollection".
+    pub r#type: String,
+
+    /// These are the out features, usually STAC items, but maybe not legal STAC
+    /// items if fields are excluded.
+    pub features: Vec<Map<String, Value>>,
 
     /// The next id.
     pub next: Option<String>,
@@ -29,11 +32,6 @@ pub struct Context {
 }
 
 impl Page {
-    /// Returns this page's items.
-    pub fn items(&self) -> &[Item] {
-        &self.item_collection.items
-    }
-
     /// Returns this page's next token, if it has one.
     pub fn next_token(&self) -> Option<String> {
         self.next.as_ref().map(|next| format!("next:{}", next))

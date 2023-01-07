@@ -1,3 +1,4 @@
+use crate::Fields;
 use geojson::Geometry;
 use serde::Serialize;
 
@@ -36,4 +37,8 @@ pub struct Search {
     /// The token indicating that this is a continuation of a search.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub token: Option<String>,
+
+    /// The fields to include or exclude.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fields: Option<Fields>,
 }
