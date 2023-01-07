@@ -1,3 +1,4 @@
+use serde::de::DeserializeOwned;
 use stac::Collection;
 use thiserror::Error;
 use tokio_postgres::{
@@ -27,66 +28,38 @@ impl<C: GenericClient> Client<C> {
     }
 
     pub async fn version(&self) -> Result<String> {
-        let row = self.query_one("get_version", &[]).await?;
-        row.try_get("get_version").map_err(Error::from)
+        self.string("get_version", &[]).await
     }
 
     pub async fn setting(&self, setting: &str) -> Result<String> {
-        let row = self.query_one("get_setting", &[&setting]).await?;
-        row.try_get("get_setting").map_err(Error::from)
+        self.string("get_setting", &[&setting]).await
     }
 
     pub async fn collections(&self) -> Result<Vec<Collection>> {
-        let row = self.query_one("all_collections", &[]).await?;
-        match row.try_get("all_collections") {
-            Ok(collections) => serde_json::from_value(collections).map_err(Error::from),
-            Err(err) => {
-                let err = err.into_source().unwrap(); // TODO don't unwrap
-                if err.downcast::<WasNull>().is_ok() {
-                    Ok(Vec::new())
-                } else {
-                    unimplemented!()
-                }
-            }
-        }
+        self.vec("all_collections", &[]).await
     }
 
     pub async fn collection(&self, id: &str) -> Result<Option<Collection>> {
-        let row = self.query_one("get_collection", &[&id]).await?;
-        match row.try_get("get_collection") {
-            Ok(collection) => serde_json::from_value(collection).map_err(Error::from),
-            Err(err) => {
-                let err = err.into_source().unwrap(); // TODO don't unwrap
-                if err.downcast::<WasNull>().is_ok() {
-                    Ok(None)
-                } else {
-                    unimplemented!()
-                }
-            }
-        }
+        self.opt("get_collection", &[&id]).await
     }
 
     pub async fn add_collection(&self, collection: Collection) -> Result<()> {
         let collection = serde_json::to_value(collection)?;
-        let _ = self.query_one("create_collection", &[&collection]).await?;
-        Ok(())
+        self.void("create_collection", &[&collection]).await
     }
 
     pub async fn upsert_collection(&self, collection: Collection) -> Result<()> {
         let collection = serde_json::to_value(collection)?;
-        let _ = self.query_one("upsert_collection", &[&collection]).await?;
-        Ok(())
+        self.void("upsert_collection", &[&collection]).await
     }
 
     pub async fn update_collection(&self, collection: Collection) -> Result<()> {
         let collection = serde_json::to_value(collection)?;
-        let _ = self.query_one("update_collection", &[&collection]).await?;
-        Ok(())
+        self.void("update_collection", &[&collection]).await
     }
 
     pub async fn delete_collection(&self, id: &str) -> Result<()> {
-        let _ = self.query_one("delete_collection", &[&id]).await?;
-        Ok(())
+        self.void("delete_collection", &[&id]).await
     }
 
     async fn query_one<'a>(
@@ -100,6 +73,52 @@ impl<C: GenericClient> Client<C> {
             .join(", ");
         let query = format!("SELECT * from pgstac.{}({})", function, param_string);
         self.0.query_one(&query, params).await
+    }
+
+    async fn string(&self, function: &str, params: &[&(dyn ToSql + Sync)]) -> Result<String> {
+        let row = self.query_one(function, params).await?;
+        row.try_get(function).map_err(Error::from)
+    }
+
+    async fn vec<T>(&self, function: &str, params: &[&(dyn ToSql + Sync)]) -> Result<Vec<T>>
+    where
+        T: DeserializeOwned,
+    {
+        let row = self.query_one(function, params).await?;
+        match row.try_get(function) {
+            Ok(value) => serde_json::from_value(value).map_err(Error::from),
+            Err(err) => {
+                let err = err.into_source().unwrap(); // TODO don't unwrap
+                if err.downcast::<WasNull>().is_ok() {
+                    Ok(Vec::new())
+                } else {
+                    unimplemented!() // TODO implement
+                }
+            }
+        }
+    }
+
+    async fn opt<T>(&self, function: &str, params: &[&(dyn ToSql + Sync)]) -> Result<Option<T>>
+    where
+        T: DeserializeOwned,
+    {
+        let row = self.query_one(function, params).await?;
+        match row.try_get(function) {
+            Ok(value) => serde_json::from_value(value).map_err(Error::from),
+            Err(err) => {
+                let err = err.into_source().unwrap(); // TODO don't unwrap
+                if err.downcast::<WasNull>().is_ok() {
+                    Ok(None)
+                } else {
+                    unimplemented!() // TODO implement
+                }
+            }
+        }
+    }
+
+    async fn void(&self, function: &str, params: &[&(dyn ToSql + Sync)]) -> Result<()> {
+        let _ = self.query_one(function, params).await?;
+        Ok(())
     }
 }
 
