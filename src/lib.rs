@@ -34,5 +34,6 @@ mod client;
 mod fields;
 mod page;
 mod search;
+mod sort_by;
 
-pub use {client::Client, fields::Fields, page::Page, search::Search};
+pub use {client::Client, fields::Fields, page::Page, search::Search, sort_by::SortBy};

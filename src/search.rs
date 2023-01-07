@@ -1,4 +1,4 @@
-use crate::Fields;
+use crate::{Fields, SortBy};
 use geojson::Geometry;
 use serde::Serialize;
 
@@ -41,4 +41,8 @@ pub struct Search {
     /// The fields to include or exclude.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fields: Option<Fields>,
+
+    /// The fields to sort by.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub sortby: Vec<SortBy>,
 }

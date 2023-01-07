@@ -208,7 +208,7 @@ impl<C: GenericClient> Client<C> {
 #[cfg(test)]
 mod tests {
     use super::Client;
-    use crate::{Fields, Search};
+    use crate::{Fields, Search, SortBy};
 
     use async_once::AsyncOnce;
     use bb8::Pool;
@@ -637,5 +637,38 @@ mod tests {
         println!("{:?}", item);
         assert!(item["properties"].as_object().unwrap().get("foo").is_some());
         assert!(item["properties"].as_object().unwrap().get("bar").is_none());
+    }
+
+    #[pgstac_test]
+    async fn sortby(client: Client<Transaction<'_>>) {
+        let collection = Collection::new("collection-id", "a description");
+        client.add_collection(collection).await.unwrap();
+        let mut item = Item::new("a");
+        item.collection = Some("collection-id".to_string());
+        item.geometry = Some(longmont());
+        client.add_item(item.clone()).await.unwrap();
+        item.id = "b".to_string();
+        client.add_item(item).await.unwrap();
+        let search = Search {
+            sortby: vec![SortBy {
+                field: "id".to_string(),
+                direction: "asc".to_string(),
+            }],
+            ..Default::default()
+        };
+        let page = client.search(search).await.unwrap();
+        assert_eq!(page.features[0]["id"], "a");
+        assert_eq!(page.features[1]["id"], "b");
+
+        let search = Search {
+            sortby: vec![SortBy {
+                field: "id".to_string(),
+                direction: "desc".to_string(),
+            }],
+            ..Default::default()
+        };
+        let page = client.search(search).await.unwrap();
+        assert_eq!(page.features[0]["id"], "b");
+        assert_eq!(page.features[1]["id"], "a");
     }
 }
