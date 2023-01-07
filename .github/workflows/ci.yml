@@ -1,0 +1,39 @@
+name: CI
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      pgstac:
+        image: ghcr.io/stac-utils/pgstac:v0.6.11
+        env:
+          POSTGRES_USER: username
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: postgis
+          PGUSER: username
+          PGPASSWORD: password
+          PGDATABASE: postgis
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: Set up Rust cache
+        uses: Swatinem/rust-cache@v2
+      - name: Format
+        run: cargo fmt --verbose
+      - name: Build
+        run: cargo build --verbose
+      - name: Test
+        run: cargo test --verbose
