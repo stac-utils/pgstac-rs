@@ -78,6 +78,11 @@ impl<C: GenericClient> Client<C> {
         Ok(())
     }
 
+    pub async fn delete_collection(&self, id: &str) -> Result<()> {
+        let _ = self.query_one("delete_collection", &[&id]).await?;
+        Ok(())
+    }
+
     async fn query_one<'a>(
         &'a self,
         function: &str,
@@ -136,10 +141,10 @@ mod tests {
 
     #[pgstac_test]
     async fn update_collection(client: Client<Transaction<'_>>) {
-        let mut collection = Collection::new("update-collection", "a description");
+        let mut collection = Collection::new("an-id", "a description");
         client.add_collection(collection.clone()).await.unwrap();
         assert!(client
-            .collection("update-collection")
+            .collection("an-id")
             .await
             .unwrap()
             .unwrap()
@@ -150,7 +155,7 @@ mod tests {
         assert_eq!(client.collections().await.unwrap().len(), 1);
         assert_eq!(
             client
-                .collection("update-collection")
+                .collection("an-id")
                 .await
                 .unwrap()
                 .unwrap()
@@ -163,5 +168,19 @@ mod tests {
     #[pgstac_test]
     async fn collection_not_found(client: Client<Transaction<'_>>) {
         assert!(client.collection("not-an-id").await.unwrap().is_none());
+    }
+
+    #[pgstac_test]
+    async fn delete_collection(client: Client<Transaction<'_>>) {
+        let collection = Collection::new("an-id", "a description");
+        client.add_collection(collection.clone()).await.unwrap();
+        assert!(client.collection("an-id").await.unwrap().is_some());
+        client.delete_collection("an-id").await.unwrap();
+        assert!(client.collection("an-id").await.unwrap().is_none());
+    }
+
+    #[pgstac_test]
+    async fn delete_collection_does_not_exist(client: Client<Transaction<'_>>) {
+        assert!(client.delete_collection("not-an-id").await.is_err());
     }
 }
