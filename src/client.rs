@@ -489,4 +489,24 @@ mod tests {
         };
         assert_eq!(client.search(search).await.unwrap().items.len(), 1);
     }
+
+    #[pgstac_test]
+    async fn search_bbox(client: Client<Transaction<'_>>) {
+        let collection = Collection::new("collection-id", "a description");
+        client.add_collection(collection).await.unwrap();
+        let mut item = Item::new("an-id");
+        item.collection = Some("collection-id".to_string());
+        item.geometry = Some(longmont());
+        client.add_item(item.clone()).await.unwrap();
+        let search = Search {
+            bbox: vec![40., -106., 41., -105.],
+            ..Default::default()
+        };
+        assert_eq!(client.search(search).await.unwrap().items.len(), 1);
+        let search = Search {
+            bbox: vec![41., -106., 42., -105.],
+            ..Default::default()
+        };
+        assert!(client.search(search).await.unwrap().items.is_empty());
+    }
 }
