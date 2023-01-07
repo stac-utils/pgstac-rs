@@ -139,6 +139,12 @@ impl<C: GenericClient> Client<C> {
         self.void("create_item", &[&item]).await
     }
 
+    /// Updates an item.
+    pub async fn update_item(&self, item: Item) -> Result<()> {
+        let item = serde_json::to_value(item)?;
+        self.void("update_item", &[&item]).await
+    }
+
     async fn query_one<'a>(
         &'a self,
         function: &str,
@@ -348,5 +354,29 @@ mod tests {
     async fn item_without_collection(client: Client<Transaction<'_>>) {
         let item = Item::new("an-id");
         assert!(client.add_item(item.clone()).await.is_err());
+    }
+
+    #[pgstac_test]
+    async fn update_item(client: Client<Transaction<'_>>) {
+        let collection = Collection::new("collection-id", "a description");
+        client.add_collection(collection).await.unwrap();
+        let mut item = Item::new("an-id");
+        item.collection = Some("collection-id".to_string());
+        item.geometry = Some(longmont());
+        client.add_item(item.clone()).await.unwrap();
+        item.properties
+            .additional_fields
+            .insert("foo".into(), "bar".into());
+        client.update_item(item).await.unwrap();
+        assert_eq!(
+            client
+                .item("an-id", "collection-id")
+                .await
+                .unwrap()
+                .unwrap()
+                .properties
+                .additional_fields["foo"],
+            "bar"
+        );
     }
 }
