@@ -1,0 +1,16 @@
+version: '3'
+services:
+  database:
+    container_name: pgstac-rs
+    image: ghcr.io/stac-utils/pgstac:v0.6.11
+    environment:
+      - POSTGRES_USER=username
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=postgis
+      - PGUSER=username
+      - PGPASSWORD=password
+      - PGHOST=localhost
+      - PGDATABASE=postgis
+    ports:
+      - "5432:5432"
+    command: postgres -N 500
