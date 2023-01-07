@@ -148,8 +148,9 @@ mod tests {
     lazy_static! {
         static ref POOL: AsyncOnce<Pool<PostgresConnectionManager<NoTls>>> =
             AsyncOnce::new(async {
-                let config = "postgresql://username:password@localhost:5432/postgis";
-                let _ = tokio_postgres::connect(config, NoTls).await.unwrap();
+                let config = std::env::var("PGSTAC_RS_TEST_DB")
+                    .unwrap_or("postgresql://username:password@localhost:5432/postgis".to_string());
+                let _ = tokio_postgres::connect(&config, NoTls).await.unwrap();
                 let manager =
                     PostgresConnectionManager::new_from_stringlike(config, NoTls).unwrap();
                 Pool::builder().build(manager).await.unwrap()
