@@ -1,3 +1,35 @@
+//! Rust interface for [pgstac](https://github.com/stac-utils/pgstac)
+//!
+//! # Examples
+//!
+//! [Client] provides an interface to query a **pgstac** database. It can be created from anything that implements [tokio_postgres::GenericClient].
+//!
+//! ```
+//! use pgstac::Client;
+//! use tokio_postgres::NoTls;
+//!
+//! # tokio_test::block_on(async {
+//! let (client, connection) = tokio_postgres::connect("postgresql://username:password@localhost:5432/postgis", NoTls).await.unwrap();
+//! let client = Client::new(client);
+//! # })
+//! ```
+//!
+//! If you want to work in a transaction, you can do that too:
+//!
+//! ```no_run
+//! # use pgstac::Client;
+//! # use tokio_postgres::NoTls;
+//!
+//! # tokio_test::block_on(async {
+//! let (mut client, connection) = tokio_postgres::connect("postgresql://username:password@localhost:5432/postgis", NoTls).await.unwrap();
+//! let client = Client::new(client.transaction().await.unwrap());
+//! /// Do stuff.
+//! client.into_inner().commit();
+//! # })
+//! ```
+
+#![deny(missing_docs)]
+
 use serde::de::DeserializeOwned;
 use stac::{Collection, Item};
 use thiserror::Error;
@@ -6,72 +38,102 @@ use tokio_postgres::{
     GenericClient, Row,
 };
 
+/// Crate-specific error enum.
 #[derive(Debug, Error)]
 pub enum Error {
+    /// A boxed error.
+    ///
+    /// Used to capture generic errors from [tokio_postgres::types::FromSql].
     #[error(transparent)]
     Boxed(#[from] Box<dyn std::error::Error + Sync + Send>),
 
+    /// [serde_json::Error]
     #[error(transparent)]
     SerdeJson(#[from] serde_json::Error),
 
+    /// [tokio_postgres::Error]
     #[error(transparent)]
     TokioPostgres(#[from] tokio_postgres::Error),
 
+    /// An unknown error.
+    ///
+    /// Used when [tokio_postgres::types::FromSql] doesn't have a source.
     #[error("unknown error")]
     Unknown,
 }
 
+/// Crate-specific result type.
 pub type Result<T> = std::result::Result<T, Error>;
 
+/// A **pgstac** client.
+///
+/// Not every **pgstac** function is provided, and some names are changed to
+/// match Rust conventions.
 #[derive(Debug)]
 pub struct Client<C>(C)
 where
     C: GenericClient;
 
 impl<C: GenericClient> Client<C> {
+    /// Creates a new client.
     pub fn new(client: C) -> Client<C> {
         Client(client)
     }
 
+    /// Returns this client's inner client.
+    pub fn into_inner(self) -> C {
+        self.0
+    }
+
+    /// Returns the **pgstac** version.
     pub async fn version(&self) -> Result<String> {
         self.string("get_version", &[]).await
     }
 
+    /// Returns the value of a **pgstac** setting.
     pub async fn setting(&self, setting: &str) -> Result<String> {
         self.string("get_setting", &[&setting]).await
     }
 
+    /// Fetches all collections.
     pub async fn collections(&self) -> Result<Vec<Collection>> {
         self.vec("all_collections", &[]).await
     }
 
+    /// Fetches a collection by id.
     pub async fn collection(&self, id: &str) -> Result<Option<Collection>> {
         self.opt("get_collection", &[&id]).await
     }
 
+    /// Adds a collection.
     pub async fn add_collection(&self, collection: Collection) -> Result<()> {
         let collection = serde_json::to_value(collection)?;
         self.void("create_collection", &[&collection]).await
     }
 
+    /// Adds or updates a collection.
     pub async fn upsert_collection(&self, collection: Collection) -> Result<()> {
         let collection = serde_json::to_value(collection)?;
         self.void("upsert_collection", &[&collection]).await
     }
 
+    /// Updates a collection.
     pub async fn update_collection(&self, collection: Collection) -> Result<()> {
         let collection = serde_json::to_value(collection)?;
         self.void("update_collection", &[&collection]).await
     }
 
+    /// Deletes a collection.
     pub async fn delete_collection(&self, id: &str) -> Result<()> {
         self.void("delete_collection", &[&id]).await
     }
 
+    /// Fetches an item.
     pub async fn item(&self, id: &str, collection: &str) -> Result<Option<Item>> {
         self.opt("get_item", &[&id, &collection]).await
     }
 
+    /// Adds an item.
     pub async fn add_item(&self, item: Item) -> Result<()> {
         let item = serde_json::to_value(item)?;
         self.void("create_item", &[&item]).await
@@ -232,6 +294,12 @@ mod tests {
                 .unwrap(),
             "a title"
         );
+    }
+
+    #[pgstac_test]
+    async fn update_collection_does_not_exit(client: Client<Transaction<'_>>) {
+        let collection = Collection::new("an-id", "a description");
+        assert!(client.update_collection(collection).await.is_err());
     }
 
     #[pgstac_test]

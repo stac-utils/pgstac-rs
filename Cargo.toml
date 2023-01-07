@@ -18,3 +18,4 @@ geojson = "0.24"
 lazy_static = "1.4"
 pgstac-test = { path = "pgstac-test" }
 tokio = { version = "1.23", features = ["rt-multi-thread", "macros"] }
+tokio-test = "0.4"
