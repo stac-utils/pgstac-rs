@@ -72,6 +72,12 @@ impl<C: GenericClient> Client<C> {
         Ok(())
     }
 
+    pub async fn upsert_collection(&self, collection: Collection) -> Result<()> {
+        let collection = serde_json::to_value(collection)?;
+        let _ = self.query_one("upsert_collection", &[&collection]).await?;
+        Ok(())
+    }
+
     pub async fn update_collection(&self, collection: Collection) -> Result<()> {
         let collection = serde_json::to_value(collection)?;
         let _ = self.query_one("update_collection", &[&collection]).await?;
@@ -145,6 +151,25 @@ mod tests {
         let collection = Collection::new("an-id", "a description");
         client.add_collection(collection.clone()).await.unwrap();
         assert!(client.add_collection(collection).await.is_err());
+    }
+
+    #[pgstac_test]
+    async fn upsert_collection(client: Client<Transaction<'_>>) {
+        assert!(client.collections().await.unwrap().is_empty());
+        let mut collection = Collection::new("an-id", "a description");
+        client.upsert_collection(collection.clone()).await.unwrap();
+        collection.title = Some("a title".to_string());
+        client.upsert_collection(collection).await.unwrap();
+        assert_eq!(
+            client
+                .collection("an-id")
+                .await
+                .unwrap()
+                .unwrap()
+                .title
+                .unwrap(),
+            "a title"
+        );
     }
 
     #[pgstac_test]
