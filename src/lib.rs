@@ -139,6 +139,12 @@ impl<C: GenericClient> Client<C> {
         self.void("create_item", &[&item]).await
     }
 
+    /// Adds items.
+    pub async fn add_items(&self, items: &[Item]) -> Result<()> {
+        let items = serde_json::to_value(items)?;
+        self.void("create_items", &[&items]).await
+    }
+
     /// Updates an item.
     pub async fn update_item(&self, item: Item) -> Result<()> {
         let item = serde_json::to_value(item)?;
@@ -149,6 +155,12 @@ impl<C: GenericClient> Client<C> {
     pub async fn upsert_item(&self, item: Item) -> Result<()> {
         let item = serde_json::to_value(item)?;
         self.void("upsert_item", &[&item]).await
+    }
+
+    /// Upserts items.
+    pub async fn upsert_items(&self, items: &[Item]) -> Result<()> {
+        let items = serde_json::to_value(items)?;
+        self.void("upsert_items", &[&items]).await
     }
 
     async fn query_one<'a>(
@@ -395,5 +407,41 @@ mod tests {
         item.geometry = Some(longmont());
         client.upsert_item(item.clone()).await.unwrap();
         client.upsert_item(item).await.unwrap();
+    }
+
+    #[pgstac_test]
+    async fn add_items(client: Client<Transaction<'_>>) {
+        let collection = Collection::new("collection-id", "a description");
+        client.add_collection(collection).await.unwrap();
+        let mut item = Item::new("an-id");
+        item.collection = Some("collection-id".to_string());
+        item.geometry = Some(longmont());
+        let mut other_item = item.clone();
+        other_item.id = "other-id".to_string();
+        client.add_items(&[item, other_item]).await.unwrap();
+        assert!(client
+            .item("an-id", "collection-id")
+            .await
+            .unwrap()
+            .is_some());
+        assert!(client
+            .item("other-id", "collection-id")
+            .await
+            .unwrap()
+            .is_some());
+    }
+
+    #[pgstac_test]
+    async fn upsert_items(client: Client<Transaction<'_>>) {
+        let collection = Collection::new("collection-id", "a description");
+        client.add_collection(collection).await.unwrap();
+        let mut item = Item::new("an-id");
+        item.collection = Some("collection-id".to_string());
+        item.geometry = Some(longmont());
+        let mut other_item = item.clone();
+        other_item.id = "other-id".to_string();
+        let items = vec![item, other_item];
+        client.upsert_items(&items).await.unwrap();
+        client.upsert_items(&items).await.unwrap();
     }
 }
