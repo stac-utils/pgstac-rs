@@ -171,20 +171,22 @@ impl<C: GenericClient> Client<C> {
     where
         T: DeserializeOwned,
     {
-        let row = self.query_one(function, params).await?;
-        match row.try_get(function) {
-            Ok(value) => serde_json::from_value(value).map_err(Error::from),
-            Err(err) => {
-                if let Some(err) = err.into_source() {
-                    if err.downcast_ref::<WasNull>().is_some() {
-                        Ok(None)
+        match self.value(function, params).await {
+            Ok(value) => Ok(value),
+            Err(err) => match err {
+                Error::TokioPostgres(err) => {
+                    if let Some(err) = err.into_source() {
+                        if err.downcast_ref::<WasNull>().is_some() {
+                            Ok(None)
+                        } else {
+                            Err(Error::from(err))
+                        }
                     } else {
-                        Err(Error::from(err))
+                        Err(Error::Unknown)
                     }
-                } else {
-                    Err(Error::Unknown)
                 }
-            }
+                _ => Err(err),
+            },
         }
     }
 
