@@ -93,17 +93,10 @@ impl<C: GenericClient> Client<C> {
     where
         T: DeserializeOwned,
     {
-        let row = self.query_one(function, params).await?;
-        match row.try_get(function) {
-            Ok(value) => serde_json::from_value(value).map_err(Error::from),
-            Err(err) => {
-                let err = err.into_source().unwrap(); // TODO don't unwrap
-                if err.downcast::<WasNull>().is_ok() {
-                    Ok(Vec::new())
-                } else {
-                    unimplemented!() // TODO implement
-                }
-            }
+        if let Some(value) = self.opt(function, params).await? {
+            Ok(value)
+        } else {
+            Ok(Vec::new())
         }
     }
 
