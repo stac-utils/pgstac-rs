@@ -28,7 +28,10 @@ pub struct Context {
     pub limit: usize,
 
     /// The number returned.
-    pub returned: usize,
+    pub returned: Option<usize>,
+
+    /// The number matched.
+    pub matched: Option<usize>,
 }
 
 impl Page {

@@ -209,13 +209,13 @@ impl<C: GenericClient> Client<C> {
 mod tests {
     use super::Client;
     use crate::{Fields, Search, SortBy};
-
     use async_once::AsyncOnce;
     use bb8::Pool;
     use bb8_postgres::PostgresConnectionManager;
     use geojson::{Geometry, Value};
     use lazy_static::lazy_static;
     use pgstac_test::pgstac_test;
+    use serde_json::{json, Map};
     use stac::{Collection, Item};
     use tokio_postgres::{NoTls, Transaction};
 
@@ -670,5 +670,32 @@ mod tests {
         let page = client.search(search).await.unwrap();
         assert_eq!(page.features[0]["id"], "b");
         assert_eq!(page.features[1]["id"], "a");
+    }
+
+    #[pgstac_test]
+    async fn filter(client: Client<Transaction<'_>>) {
+        let collection = Collection::new("collection-id", "a description");
+        client.add_collection(collection).await.unwrap();
+        let mut item = Item::new("a");
+        item.collection = Some("collection-id".to_string());
+        item.geometry = Some(longmont());
+        item.properties
+            .additional_fields
+            .insert("foo".into(), 42.into());
+        client.add_item(item.clone()).await.unwrap();
+        item.id = "b".to_string();
+        item.properties
+            .additional_fields
+            .insert("foo".into(), 43.into());
+        client.add_item(item).await.unwrap();
+        let mut filter = Map::new();
+        filter.insert("op".into(), "=".into());
+        filter.insert("args".into(), json!([{"property": "foo"}, 42]));
+        let search = Search {
+            filter: Some(filter),
+            ..Default::default()
+        };
+        let page = client.search(search).await.unwrap();
+        assert_eq!(page.features.len(), 1);
     }
 }

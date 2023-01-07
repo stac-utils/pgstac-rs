@@ -1,6 +1,7 @@
 use crate::{Fields, SortBy};
 use geojson::Geometry;
 use serde::Serialize;
+use serde_json::{Map, Value};
 
 /// Search.
 #[derive(Clone, Debug, Serialize, Default)]
@@ -45,4 +46,8 @@ pub struct Search {
     /// The fields to sort by.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub sortby: Vec<SortBy>,
+
+    /// The CQL filter.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub filter: Option<Map<String, Value>>,
 }
