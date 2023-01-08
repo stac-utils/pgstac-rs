@@ -606,7 +606,6 @@ mod tests {
         };
         let page = client.search(search).await.unwrap();
         let item = &page.features[0];
-        println!("{:?}", item);
         assert!(item["properties"].as_object().unwrap().get("foo").is_some());
         assert!(item["properties"].as_object().unwrap().get("bar").is_none());
     }
