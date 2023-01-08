@@ -14,7 +14,7 @@ categories = ["database", "data-structures", "science"]
 geojson = "0.24"
 serde = "1"
 serde_json = "1"
-stac = "0.2"
+stac = "0.3"
 thiserror = "1"
 tokio-postgres = { version = "0.7", features = ["with-serde_json-1"] }
 
