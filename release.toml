@@ -1,0 +1,2 @@
+allow-branch = ["main"]
+sign-tag = true

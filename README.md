@@ -7,6 +7,17 @@
 
 Rust interface for [pgstac](https://github.com/stac-utils/pgstac).
 
+## Usage
+
+In your `Cargo.toml`:
+
+```toml
+[dependencies]
+pgstac = "0.0.2"
+```
+
+See the [documentation](https://docs.rs/pgstac) for more.
+
 ## Testing
 
 **pgstac-rs** needs a blank **pgstac** database for testing.
