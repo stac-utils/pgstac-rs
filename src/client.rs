@@ -1,38 +1,10 @@
-use crate::{Page, Search};
+use crate::{Error, Page, Result, Search};
 use serde::de::DeserializeOwned;
 use stac::{Collection, Item};
-use thiserror::Error;
 use tokio_postgres::{
     types::{ToSql, WasNull},
     GenericClient, Row,
 };
-
-/// Crate-specific error enum.
-#[derive(Debug, Error)]
-pub enum Error {
-    /// A boxed error.
-    ///
-    /// Used to capture generic errors from [tokio_postgres::types::FromSql].
-    #[error(transparent)]
-    Boxed(#[from] Box<dyn std::error::Error + Sync + Send>),
-
-    /// [serde_json::Error]
-    #[error(transparent)]
-    SerdeJson(#[from] serde_json::Error),
-
-    /// [tokio_postgres::Error]
-    #[error(transparent)]
-    TokioPostgres(#[from] tokio_postgres::Error),
-
-    /// An unknown error.
-    ///
-    /// Used when [tokio_postgres::types::FromSql] doesn't have a source.
-    #[error("unknown error")]
-    Unknown,
-}
-
-/// Crate-specific result type.
-pub type Result<T> = std::result::Result<T, Error>;
 
 /// A **pgstac** client.
 ///
