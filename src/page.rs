@@ -21,7 +21,7 @@ pub struct Page {
     pub context: Context,
 }
 
-/// A page of search results.
+/// The page context.
 #[derive(Debug, Deserialize)]
 pub struct Context {
     /// The limit.
