@@ -9,7 +9,8 @@
 //! use tokio_postgres::NoTls;
 //!
 //! # tokio_test::block_on(async {
-//! let (client, connection) = tokio_postgres::connect("postgresql://username:password@localhost:5432/postgis", NoTls).await.unwrap();
+//! let config = "postgresql://username:password@localhost:5432/postgis";
+//! let (client, connection) = tokio_postgres::connect(config, NoTls).await.unwrap();
 //! let client = Client::new(client);
 //! # })
 //! ```
@@ -17,13 +18,14 @@
 //! If you want to work in a transaction, you can do that too:
 //!
 //! ```no_run
+//! use stac::Collection;
 //! # use pgstac::Client;
 //! # use tokio_postgres::NoTls;
-//!
 //! # tokio_test::block_on(async {
-//! let (mut client, connection) = tokio_postgres::connect("postgresql://username:password@localhost:5432/postgis", NoTls).await.unwrap();
+//! # let config = "postgresql://username:password@localhost:5432/postgis";
+//! let (mut client, connection) = tokio_postgres::connect(config, NoTls).await.unwrap();
 //! let client = Client::new(client.transaction().await.unwrap());
-//! /// Do stuff.
+//! client.add_collection(Collection::new("an-id", "a description")).await.unwrap();
 //! client.into_inner().commit();
 //! # })
 //! ```
