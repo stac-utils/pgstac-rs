@@ -11,7 +11,7 @@
 //! # tokio_test::block_on(async {
 //! let config = "postgresql://username:password@localhost:5432/postgis";
 //! let (client, connection) = tokio_postgres::connect(config, NoTls).await.unwrap();
-//! let client = Client::new(client);
+//! let client = Client::new(&client);
 //! # })
 //! ```
 //!
@@ -24,9 +24,10 @@
 //! # tokio_test::block_on(async {
 //! # let config = "postgresql://username:password@localhost:5432/postgis";
 //! let (mut client, connection) = tokio_postgres::connect(config, NoTls).await.unwrap();
-//! let client = Client::new(client.transaction().await.unwrap());
+//! let transaction = client.transaction().await.unwrap();
+//! let client = Client::new(&transaction);
 //! client.add_collection(Collection::new("an-id", "a description")).await.unwrap();
-//! client.into_inner().commit();
+//! transaction.commit().await.unwrap();
 //! # })
 //! ```
 

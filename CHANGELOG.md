@@ -8,6 +8,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 
+- `Client` now takes a reference to a generic client, instead of owning it
+
+### Removed
+
+- `Client::into_inner`
+
+## [0.0.2] - 2023-01-08
+
+### Changed
+
 - Make `Error`, `Result`, and `Context` publicly visible
 
 ## [0.0.1] - 2023-01-07

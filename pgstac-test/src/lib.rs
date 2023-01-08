@@ -15,10 +15,10 @@ fn impl_pgstac_test(ast: ItemFn) -> TokenStream {
         async fn #ident() {
             let mut client = POOL.get().await.get().await.unwrap();
             let transaction = client.transaction().await.unwrap();
-            let client = Client::new(transaction);
+            let client = Client::new(&transaction);
             #ast
             #ident(&client).await;
-            client.into_inner().rollback().await.unwrap();
+            transaction.rollback().await.unwrap();
         }
     };
     gen.into()
