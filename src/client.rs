@@ -176,27 +176,11 @@ impl<'a, C: GenericClient> Client<'a, C> {
 mod tests {
     use super::Client;
     use crate::{Fields, Search, SortBy};
-    use async_once::AsyncOnce;
-    use bb8::Pool;
-    use bb8_postgres::PostgresConnectionManager;
     use geojson::{Geometry, Value};
-    use lazy_static::lazy_static;
     use pgstac_test::pgstac_test;
     use serde_json::{json, Map};
     use stac::{Collection, Item};
     use tokio_postgres::{NoTls, Transaction};
-
-    lazy_static! {
-        static ref POOL: AsyncOnce<Pool<PostgresConnectionManager<NoTls>>> =
-            AsyncOnce::new(async {
-                let config = std::env::var("PGSTAC_RS_TEST_DB")
-                    .unwrap_or("postgresql://username:password@localhost:5432/postgis".to_string());
-                let _ = tokio_postgres::connect(&config, NoTls).await.unwrap();
-                let manager =
-                    PostgresConnectionManager::new_from_stringlike(config, NoTls).unwrap();
-                Pool::builder().build(manager).await.unwrap()
-            });
-    }
 
     fn longmont() -> Geometry {
         Geometry::new(Value::Point(vec![-105.1019, 40.1672]))
