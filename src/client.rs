@@ -180,7 +180,7 @@ mod tests {
     use pgstac_test::pgstac_test;
     use serde_json::{json, Map};
     use stac::{Collection, Item};
-    use tokio_postgres::{NoTls, Transaction};
+    use tokio_postgres::Transaction;
 
     fn longmont() -> Geometry {
         Geometry::new(Value::Point(vec![-105.1019, 40.1672]))
