@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- Bump pgstac version to v0.6.12 ([#1](https://github.com/gadomski/pgstac-rs/pull/1))
+
 ## [0.0.3] - 2023-01-08
 
 ### Changed
