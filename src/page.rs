@@ -1,5 +1,6 @@
 use serde::Deserialize;
 use serde_json::{Map, Value};
+use stac_api::Context;
 
 /// A page of search results.
 #[derive(Debug, Deserialize)]
@@ -19,19 +20,6 @@ pub struct Page {
 
     /// The search context.
     pub context: Context,
-}
-
-/// The page context.
-#[derive(Debug, Deserialize)]
-pub struct Context {
-    /// The limit.
-    pub limit: usize,
-
-    /// The number returned.
-    pub returned: Option<usize>,
-
-    /// The number matched.
-    pub matched: Option<usize>,
 }
 
 impl Page {

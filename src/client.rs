@@ -1,6 +1,7 @@
-use crate::{Error, Page, Result, Search};
+use crate::{Error, Page, Result};
 use serde::de::DeserializeOwned;
 use stac::{Collection, Item};
+use stac_api::Search;
 use tokio_postgres::{
     types::{ToSql, WasNull},
     GenericClient, Row,
@@ -175,11 +176,11 @@ impl<'a, C: GenericClient> Client<'a, C> {
 #[cfg(test)]
 mod tests {
     use super::Client;
-    use crate::{Fields, Search, SortBy};
     use geojson::{Geometry, Value};
     use pgstac_test::pgstac_test;
     use serde_json::{json, Map};
     use stac::{Collection, Item};
+    use stac_api::{Fields, Filter, Search, Sortby};
     use tokio_postgres::Transaction;
 
     fn longmont() -> Geometry {
@@ -413,12 +414,12 @@ mod tests {
         item.geometry = Some(longmont());
         client.add_item(item.clone()).await.unwrap();
         let search = Search {
-            ids: vec!["an-id".to_string()],
+            ids: Some(vec!["an-id".to_string()]),
             ..Default::default()
         };
         assert_eq!(client.search(search).await.unwrap().features.len(), 1);
         let search = Search {
-            ids: vec!["not-an-id".to_string()],
+            ids: Some(vec!["not-an-id".to_string()]),
             ..Default::default()
         };
         assert!(client.search(search).await.unwrap().features.is_empty());
@@ -433,12 +434,12 @@ mod tests {
         item.geometry = Some(longmont());
         client.add_item(item.clone()).await.unwrap();
         let search = Search {
-            collections: vec!["collection-id".to_string()],
+            collections: Some(vec!["collection-id".to_string()]),
             ..Default::default()
         };
         assert_eq!(client.search(search).await.unwrap().features.len(), 1);
         let search = Search {
-            collections: vec!["not-an-id".to_string()],
+            collections: Some(vec!["not-an-id".to_string()]),
             ..Default::default()
         };
         assert!(client.search(search).await.unwrap().features.is_empty());
@@ -460,7 +461,7 @@ mod tests {
         };
         let page = client.search(search).await.unwrap();
         assert_eq!(page.features.len(), 1);
-        assert_eq!(page.context.limit, 1);
+        assert_eq!(page.context.limit.unwrap(), 1);
     }
 
     #[pgstac_test]
@@ -472,12 +473,12 @@ mod tests {
         item.geometry = Some(longmont());
         client.add_item(item.clone()).await.unwrap();
         let search = Search {
-            bbox: vec![-106., 40., -105., 41.],
+            bbox: Some(vec![-106., 40., -105., 41.]),
             ..Default::default()
         };
         assert_eq!(client.search(search).await.unwrap().features.len(), 1);
         let search = Search {
-            bbox: vec![-106., 41., -105., 42.],
+            bbox: Some(vec![-106., 41., -105., 42.]),
             ..Default::default()
         };
         assert!(client.search(search).await.unwrap().features.is_empty());
@@ -493,12 +494,12 @@ mod tests {
         item.properties.datetime = Some("2023-01-07T00:00:00Z".to_string());
         client.add_item(item.clone()).await.unwrap();
         let search = Search {
-            datetime: "2023-01-07T00:00:00Z".to_string(),
+            datetime: Some("2023-01-07T00:00:00Z".to_string()),
             ..Default::default()
         };
         assert_eq!(client.search(search).await.unwrap().features.len(), 1);
         let search = Search {
-            datetime: "2023-01-08T00:00:00Z".to_string(),
+            datetime: Some("2023-01-08T00:00:00Z".to_string()),
             ..Default::default()
         };
         assert!(client.search(search).await.unwrap().features.is_empty());
@@ -554,10 +555,14 @@ mod tests {
         };
         let page = client.search(search.clone()).await.unwrap();
         assert_eq!(page.features[0]["id"], "an-id");
-        search.token = page.next_token();
+        search
+            .additional_fields
+            .insert("token".to_string(), page.next_token().into());
         let page = client.search(search.clone()).await.unwrap();
         assert_eq!(page.features[0]["id"], "another-id");
-        search.token = page.prev_token();
+        search
+            .additional_fields
+            .insert("token".to_string(), page.prev_token().into());
         let page = client.search(search).await.unwrap();
         assert_eq!(page.features[0]["id"], "an-id");
     }
@@ -600,10 +605,7 @@ mod tests {
         item.id = "b".to_string();
         client.add_item(item).await.unwrap();
         let search = Search {
-            sortby: vec![SortBy {
-                field: "id".to_string(),
-                direction: "asc".to_string(),
-            }],
+            sortby: Some(vec![Sortby::asc("id")]),
             ..Default::default()
         };
         let page = client.search(search).await.unwrap();
@@ -611,10 +613,7 @@ mod tests {
         assert_eq!(page.features[1]["id"], "b");
 
         let search = Search {
-            sortby: vec![SortBy {
-                field: "id".to_string(),
-                direction: "desc".to_string(),
-            }],
+            sortby: Some(vec![Sortby::desc("id")]),
             ..Default::default()
         };
         let page = client.search(search).await.unwrap();
@@ -642,7 +641,7 @@ mod tests {
         filter.insert("op".into(), "=".into());
         filter.insert("args".into(), json!([{"property": "foo"}, 42]));
         let search = Search {
-            filter: Some(filter),
+            filter: Some(Filter::Cql2Json(filter)),
             ..Default::default()
         };
         let page = client.search(search).await.unwrap();

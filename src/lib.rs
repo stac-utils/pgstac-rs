@@ -34,18 +34,9 @@
 #![deny(missing_docs)]
 
 mod client;
-mod fields;
 mod page;
-mod search;
-mod sort_by;
 
-pub use {
-    client::Client,
-    fields::Fields,
-    page::{Context, Page},
-    search::Search,
-    sort_by::SortBy,
-};
+pub use {client::Client, page::Page};
 
 /// Crate-specific error enum.
 #[derive(Debug, thiserror::Error)]
