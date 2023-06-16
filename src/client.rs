@@ -9,44 +9,17 @@ use tokio_postgres::{
 
 /// A **pgstac** client.
 ///
-/// Not every **pgstac** function is provided, and some names are changed to match Rust conventions.
+/// Not every **pgstac** function is provided, and some names are changed to
+/// match Rust conventions.
 #[derive(Debug)]
-pub struct Client<C>(C)
+pub struct Client<'a, C>(&'a C)
 where
     C: GenericClient;
 
-impl<C: GenericClient> Client<C> {
+impl<'a, C: GenericClient> Client<'a, C> {
     /// Creates a new client.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use pgstac::Client;
-    /// # tokio_test::block_on(async {
-    /// let config = "postgresql://username:password@localhost:5432/postgis";
-    /// let (client, connection) = tokio_postgres::connect(config, tokio_postgres::NoTls).await.unwrap();
-    /// let client = Client::new(client);
-    /// # })
-    /// ```
-    pub fn new(client: C) -> Client<C> {
+    pub fn new(client: &C) -> Client<C> {
         Client(client)
-    }
-
-    /// Consumes this client and returns is inner `GenericClient`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use pgstac::Client;
-    /// # tokio_test::block_on(async {
-    /// let config = "postgresql://username:password@localhost:5432/postgis";
-    /// let (client, connection) = tokio_postgres::connect(config, tokio_postgres::NoTls).await.unwrap();
-    /// let client = Client::new(client);
-    /// let tokio_client = client.into_inner();
-    /// # })
-    /// ```
-    pub fn into_inner(self) -> C {
-        self.0
     }
 
     /// Returns the **pgstac** version.
@@ -215,17 +188,17 @@ mod tests {
     }
 
     #[pgstac_test]
-    async fn version(client: &Client<Transaction<'_>>) {
+    async fn version(client: &Client<'_, Transaction<'_>>) {
         let _ = client.version().await.unwrap();
     }
 
     #[pgstac_test]
-    async fn setting(client: &Client<Transaction<'_>>) {
+    async fn setting(client: &Client<'_, Transaction<'_>>) {
         assert_eq!(client.setting("context").await.unwrap(), "off");
     }
 
     #[pgstac_test]
-    async fn collections(client: &Client<Transaction<'_>>) {
+    async fn collections(client: &Client<'_, Transaction<'_>>) {
         assert!(client.collections().await.unwrap().is_empty());
         client
             .add_collection(Collection::new("an-id", "a description"))
@@ -235,7 +208,7 @@ mod tests {
     }
 
     #[pgstac_test]
-    async fn add_collection_duplicate(client: &Client<Transaction<'_>>) {
+    async fn add_collection_duplicate(client: &Client<'_, Transaction<'_>>) {
         assert!(client.collections().await.unwrap().is_empty());
         let collection = Collection::new("an-id", "a description");
         client.add_collection(collection.clone()).await.unwrap();
@@ -243,7 +216,7 @@ mod tests {
     }
 
     #[pgstac_test]
-    async fn upsert_collection(client: &Client<Transaction<'_>>) {
+    async fn upsert_collection(client: &Client<'_, Transaction<'_>>) {
         assert!(client.collections().await.unwrap().is_empty());
         let mut collection = Collection::new("an-id", "a description");
         client.upsert_collection(collection.clone()).await.unwrap();
@@ -262,7 +235,7 @@ mod tests {
     }
 
     #[pgstac_test]
-    async fn update_collection(client: &Client<Transaction<'_>>) {
+    async fn update_collection(client: &Client<'_, Transaction<'_>>) {
         let mut collection = Collection::new("an-id", "a description");
         client.add_collection(collection.clone()).await.unwrap();
         assert!(client
@@ -288,18 +261,18 @@ mod tests {
     }
 
     #[pgstac_test]
-    async fn update_collection_does_not_exit(client: &Client<Transaction<'_>>) {
+    async fn update_collection_does_not_exit(client: &Client<'_, Transaction<'_>>) {
         let collection = Collection::new("an-id", "a description");
         assert!(client.update_collection(collection).await.is_err());
     }
 
     #[pgstac_test]
-    async fn collection_not_found(client: &Client<Transaction<'_>>) {
+    async fn collection_not_found(client: &Client<'_, Transaction<'_>>) {
         assert!(client.collection("not-an-id").await.unwrap().is_none());
     }
 
     #[pgstac_test]
-    async fn delete_collection(client: &Client<Transaction<'_>>) {
+    async fn delete_collection(client: &Client<'_, Transaction<'_>>) {
         let collection = Collection::new("an-id", "a description");
         client.add_collection(collection.clone()).await.unwrap();
         assert!(client.collection("an-id").await.unwrap().is_some());
@@ -308,12 +281,12 @@ mod tests {
     }
 
     #[pgstac_test]
-    async fn delete_collection_does_not_exist(client: &Client<Transaction<'_>>) {
+    async fn delete_collection_does_not_exist(client: &Client<'_, Transaction<'_>>) {
         assert!(client.delete_collection("not-an-id").await.is_err());
     }
 
     #[pgstac_test]
-    async fn item(client: &Client<Transaction<'_>>) {
+    async fn item(client: &Client<'_, Transaction<'_>>) {
         assert!(client
             .item("an-id", "collection-id")
             .await
@@ -336,13 +309,13 @@ mod tests {
     }
 
     #[pgstac_test]
-    async fn item_without_collection(client: &Client<Transaction<'_>>) {
+    async fn item_without_collection(client: &Client<'_, Transaction<'_>>) {
         let item = Item::new("an-id");
         assert!(client.add_item(item.clone()).await.is_err());
     }
 
     #[pgstac_test]
-    async fn update_item(client: &Client<Transaction<'_>>) {
+    async fn update_item(client: &Client<'_, Transaction<'_>>) {
         let collection = Collection::new("collection-id", "a description");
         client.add_collection(collection).await.unwrap();
         let mut item = Item::new("an-id");
@@ -366,7 +339,7 @@ mod tests {
     }
 
     #[pgstac_test]
-    async fn upsert_item(client: &Client<Transaction<'_>>) {
+    async fn upsert_item(client: &Client<'_, Transaction<'_>>) {
         let collection = Collection::new("collection-id", "a description");
         client.add_collection(collection).await.unwrap();
         let mut item = Item::new("an-id");
@@ -377,7 +350,7 @@ mod tests {
     }
 
     #[pgstac_test]
-    async fn add_items(client: &Client<Transaction<'_>>) {
+    async fn add_items(client: &Client<'_, Transaction<'_>>) {
         let collection = Collection::new("collection-id", "a description");
         client.add_collection(collection).await.unwrap();
         let mut item = Item::new("an-id");
@@ -399,7 +372,7 @@ mod tests {
     }
 
     #[pgstac_test]
-    async fn upsert_items(client: &Client<Transaction<'_>>) {
+    async fn upsert_items(client: &Client<'_, Transaction<'_>>) {
         let collection = Collection::new("collection-id", "a description");
         client.add_collection(collection).await.unwrap();
         let mut item = Item::new("an-id");
@@ -413,7 +386,7 @@ mod tests {
     }
 
     #[pgstac_test]
-    async fn search_everything(client: &Client<Transaction<'_>>) {
+    async fn search_everything(client: &Client<'_, Transaction<'_>>) {
         assert!(client
             .search(Search::default())
             .await
@@ -433,7 +406,7 @@ mod tests {
     }
 
     #[pgstac_test]
-    async fn search_ids(client: &Client<Transaction<'_>>) {
+    async fn search_ids(client: &Client<'_, Transaction<'_>>) {
         let collection = Collection::new("collection-id", "a description");
         client.add_collection(collection).await.unwrap();
         let mut item = Item::new("an-id");
@@ -453,7 +426,7 @@ mod tests {
     }
 
     #[pgstac_test]
-    async fn search_collections(client: &Client<Transaction<'_>>) {
+    async fn search_collections(client: &Client<'_, Transaction<'_>>) {
         let collection = Collection::new("collection-id", "a description");
         client.add_collection(collection).await.unwrap();
         let mut item = Item::new("an-id");
@@ -473,7 +446,7 @@ mod tests {
     }
 
     #[pgstac_test]
-    async fn search_limit(client: &Client<Transaction<'_>>) {
+    async fn search_limit(client: &Client<'_, Transaction<'_>>) {
         let collection = Collection::new("collection-id", "a description");
         client.add_collection(collection).await.unwrap();
         let mut item = Item::new("an-id");
@@ -492,7 +465,7 @@ mod tests {
     }
 
     #[pgstac_test]
-    async fn search_bbox(client: &Client<Transaction<'_>>) {
+    async fn search_bbox(client: &Client<'_, Transaction<'_>>) {
         let collection = Collection::new("collection-id", "a description");
         client.add_collection(collection).await.unwrap();
         let mut item = Item::new("an-id");
@@ -512,7 +485,7 @@ mod tests {
     }
 
     #[pgstac_test]
-    async fn search_datetime(client: &Client<Transaction<'_>>) {
+    async fn search_datetime(client: &Client<'_, Transaction<'_>>) {
         let collection = Collection::new("collection-id", "a description");
         client.add_collection(collection).await.unwrap();
         let mut item = Item::new("an-id");
@@ -533,7 +506,7 @@ mod tests {
     }
 
     #[pgstac_test]
-    async fn search_intersects(client: &Client<Transaction<'_>>) {
+    async fn search_intersects(client: &Client<'_, Transaction<'_>>) {
         let collection = Collection::new("collection-id", "a description");
         client.add_collection(collection).await.unwrap();
         let mut item = Item::new("an-id");
@@ -565,7 +538,7 @@ mod tests {
     }
 
     #[pgstac_test]
-    async fn pagination(client: &Client<Transaction<'_>>) {
+    async fn pagination(client: &Client<'_, Transaction<'_>>) {
         let collection = Collection::new("collection-id", "a description");
         client.add_collection(collection).await.unwrap();
         let mut item = Item::new("an-id");
@@ -595,7 +568,7 @@ mod tests {
     }
 
     #[pgstac_test]
-    async fn fields(client: &Client<Transaction<'_>>) {
+    async fn fields(client: &Client<'_, Transaction<'_>>) {
         let collection = Collection::new("collection-id", "a description");
         client.add_collection(collection).await.unwrap();
         let mut item = Item::new("an-id");
@@ -622,7 +595,7 @@ mod tests {
     }
 
     #[pgstac_test]
-    async fn sortby(client: &Client<Transaction<'_>>) {
+    async fn sortby(client: &Client<'_, Transaction<'_>>) {
         let collection = Collection::new("collection-id", "a description");
         client.add_collection(collection).await.unwrap();
         let mut item = Item::new("a");
@@ -649,7 +622,7 @@ mod tests {
     }
 
     #[pgstac_test]
-    async fn filter(client: &Client<Transaction<'_>>) {
+    async fn filter(client: &Client<'_, Transaction<'_>>) {
         let collection = Collection::new("collection-id", "a description");
         client.add_collection(collection).await.unwrap();
         let mut item = Item::new("a");
@@ -676,7 +649,7 @@ mod tests {
     }
 
     #[pgstac_test]
-    async fn query(client: &Client<Transaction<'_>>) {
+    async fn query(client: &Client<'_, Transaction<'_>>) {
         let collection = Collection::new("collection-id", "a description");
         client.add_collection(collection).await.unwrap();
         let mut item = Item::new("a");

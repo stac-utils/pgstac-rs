@@ -1,33 +1,32 @@
-//! Rust interface for [pgstac](https://github.com/stac-utils/pgstac).
+//! Rust interface for [pgstac](https://github.com/stac-utils/pgstac)
 //!
 //! # Examples
 //!
-//! The top-level [connect] function is the simplest entrypoint:
+//! [Client] provides an interface to query a **pgstac** database. It can be created from anything that implements [tokio_postgres::GenericClient].
 //!
 //! ```
-//! use tokio_postgres::NoTls;
-//!
-//! # tokio_test::block_on(async {
-//! let config = "postgresql://username:password@localhost:5432/postgis";
-//! let (client, connection) = pgstac::connect(config, NoTls).await.unwrap();
-//! tokio::spawn(async move { connection.await.unwrap() });
-//! # })
-//! ```
-//!
-//! If you want to work in a transaction, you can create your own client:
-//!
-//! ```no_run
-//! use stac::Collection;
 //! use pgstac::Client;
 //! use tokio_postgres::NoTls;
 //!
 //! # tokio_test::block_on(async {
+//! let config = "postgresql://username:password@localhost:5432/postgis";
+//! let (client, connection) = tokio_postgres::connect(config, NoTls).await.unwrap();
+//! let client = Client::new(&client);
+//! # })
+//! ```
+//!
+//! If you want to work in a transaction, you can do that too:
+//!
+//! ```no_run
+//! use stac::Collection;
+//! # use pgstac::Client;
+//! # use tokio_postgres::NoTls;
+//! # tokio_test::block_on(async {
 //! # let config = "postgresql://username:password@localhost:5432/postgis";
 //! let (mut client, connection) = tokio_postgres::connect(config, NoTls).await.unwrap();
-//! tokio::spawn(async move { connection.await.unwrap() });
-//! let client = Client::new(client.transaction().await.unwrap());
+//! let transaction = client.transaction().await.unwrap();
+//! let client = Client::new(&transaction);
 //! client.add_collection(Collection::new("an-id", "a description")).await.unwrap();
-//! let transaction = client.into_inner();
 //! transaction.commit().await.unwrap();
 //! # })
 //! ```
@@ -65,30 +64,3 @@ pub enum Error {
 
 /// Crate-specific result type.
 pub type Result<T> = std::result::Result<T, Error>;
-
-/// A convenience function which parses a connection string and connects to a **pgstac** database.
-///
-/// # Examples
-///
-/// ```
-/// use tokio_postgres::NoTls;
-///
-/// # tokio_test::block_on(async {
-/// let config = "postgresql://username:password@localhost:5432/postgis";
-/// let (client, connection) = pgstac::connect(config, NoTls).await.unwrap();
-/// tokio::spawn(async move { connection.await.unwrap() });
-/// # })
-/// ```
-pub async fn connect<T>(
-    config: &str,
-    tls: T,
-) -> Result<(
-    Client<tokio_postgres::Client>,
-    tokio_postgres::Connection<tokio_postgres::Socket, T::Stream>,
-)>
-where
-    T: tokio_postgres::tls::MakeTlsConnect<tokio_postgres::Socket>,
-{
-    let (client, connection) = tokio_postgres::connect(config, tls).await?;
-    Ok((Client::new(client), connection))
-}
