@@ -183,8 +183,14 @@ mod tests {
     use stac_api::{Fields, Filter, Search, Sortby};
     use tokio_postgres::Transaction;
 
-    fn longmont() -> Geometry {
-        Geometry::new(Value::Point(vec![-105.1019, 40.1672]))
+    fn longmont() -> stac::Geometry {
+        serde_json::from_value(
+            serde_json::to_value(geojson::Geometry::new(geojson::Value::Point(vec![
+                -105.1019, 40.1672,
+            ])))
+            .unwrap(),
+        )
+        .unwrap()
     }
 
     #[pgstac_test]
@@ -514,24 +520,36 @@ mod tests {
         item.geometry = Some(longmont());
         client.add_item(item.clone()).await.unwrap();
         let search = Search {
-            intersects: Some(Geometry::new(Value::Polygon(vec![vec![
-                vec![-106., 40.],
-                vec![-106., 41.],
-                vec![-105., 41.],
-                vec![-105., 40.],
-                vec![-106., 40.],
-            ]]))),
+            intersects: Some(
+                serde_json::from_value(
+                    serde_json::to_value(Geometry::new(Value::Polygon(vec![vec![
+                        vec![-106., 40.],
+                        vec![-106., 41.],
+                        vec![-105., 41.],
+                        vec![-105., 40.],
+                        vec![-106., 40.],
+                    ]])))
+                    .unwrap(),
+                )
+                .unwrap(),
+            ),
             ..Default::default()
         };
         assert_eq!(client.search(search).await.unwrap().features.len(), 1);
         let search = Search {
-            intersects: Some(Geometry::new(Value::Polygon(vec![vec![
-                vec![-104., 40.],
-                vec![-104., 41.],
-                vec![-103., 41.],
-                vec![-103., 40.],
-                vec![-104., 40.],
-            ]]))),
+            intersects: Some(
+                serde_json::from_value(
+                    serde_json::to_value(Geometry::new(Value::Polygon(vec![vec![
+                        vec![-104., 40.],
+                        vec![-104., 41.],
+                        vec![-103., 41.],
+                        vec![-103., 40.],
+                        vec![-104., 40.],
+                    ]])))
+                    .unwrap(),
+                )
+                .unwrap(),
+            ),
             ..Default::default()
         };
         assert!(client.search(search).await.unwrap().features.is_empty());

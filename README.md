@@ -22,16 +22,12 @@ See the [documentation](https://docs.rs/pgstac) for more.
 
 **pgstac-rs** needs a blank **pgstac** database for testing.
 The repo comes with a [docker-compose](./docker-compose.yml) to run one.
-To start the database:
+To test:
 
 ```shell
-docker-compose up
-```
-
-Then you can test as normal:
-
-```shell
+docker-compose up -d
 cargo test
+docker-compose down
 ```
 
 Each test is run in its own transaction, which is rolled back after the test.

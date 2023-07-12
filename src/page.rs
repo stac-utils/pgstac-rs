@@ -4,6 +4,7 @@ use stac_api::Context;
 
 /// A page of search results.
 #[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct Page {
     /// This should always be "FeatureCollection".
     pub r#type: String,
