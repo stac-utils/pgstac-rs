@@ -6,9 +6,6 @@ use stac_api::Context;
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct Page {
-    /// This should always be "FeatureCollection".
-    pub r#type: String,
-
     /// These are the out features, usually STAC items, but maybe not legal STAC
     /// items if fields are excluded.
     pub features: Vec<Map<String, Value>>,
