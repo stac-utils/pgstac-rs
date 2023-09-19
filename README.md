@@ -1,6 +1,6 @@
 # pgstac-rs
 
-[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/gadomski/pgstac-rs/ci.yml?branch=main&style=for-the-badge)](https://github.com/gadomski/pgstac-rs/actions/workflows/ci.yml)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/stac-utils/pgstac-rs/ci.yml?branch=main&style=for-the-badge)](https://github.com/stac-utils/pgstac-rs/actions/workflows/ci.yml)
 [![docs.rs](https://img.shields.io/docsrs/pgstac?style=for-the-badge)](https://docs.rs/pgstac/latest/pgstac/)
 [![Crates.io](https://img.shields.io/crates/v/pgstac?style=for-the-badge)](https://crates.io/crates/pgstac)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg?style=for-the-badge)](./CODE_OF_CONDUCT)
