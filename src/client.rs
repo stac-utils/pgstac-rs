@@ -11,6 +11,10 @@ use tokio_postgres::{
 ///
 /// Not every **pgstac** function is provided, and some names are changed to
 /// match Rust conventions.
+///
+/// We don't own the inner client because we want to be able to work with
+/// references, e.g. those returned by
+/// [bb8_postgres](https://github.com/djc/bb8).
 #[derive(Debug)]
 pub struct Client<'a, C>(&'a C)
 where
