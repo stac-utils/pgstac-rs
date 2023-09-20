@@ -18,18 +18,89 @@ where
 
 impl<'a, C: GenericClient> Client<'a, C> {
     /// Creates a new client.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use pgstac::Client;
+    /// use tokio_postgres::NoTls;
+    ///
+    /// let config = "postgresql://username:password@localhost:5432/postgis";
+    /// # tokio_test::block_on(async {
+    /// let (mut client, connection) = tokio_postgres::connect(config, NoTls).await.unwrap();
+    /// let client = Client::new(&client);
+    /// # });
+    /// ```
     pub fn new(client: &C) -> Client<C> {
         Client(client)
     }
 
     /// Returns the **pgstac** version.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use pgstac::Client;
+    /// use tokio_postgres::NoTls;
+    /// let config = "postgresql://username:password@localhost:5432/postgis";
+    /// # tokio_test::block_on(async {
+    /// let (mut client, connection) = tokio_postgres::connect(config, NoTls).await.unwrap();
+    /// let client = Client::new(&client);
+    /// let version = client.version().await.unwrap();
+    /// # });
+    /// ```
     pub async fn version(&self) -> Result<String> {
         self.string("get_version", &[]).await
     }
 
-    /// Returns the value of a **pgstac** setting.
-    pub async fn setting(&self, setting: &str) -> Result<String> {
-        self.string("get_setting", &[&setting]).await
+    /// Returns the value of the `context` **pgstac** setting.
+    ///
+    /// This setting defaults to "off".  See [the **pgstac**
+    /// docs](https://github.com/stac-utils/pgstac/blob/main/docs/src/pgstac.md#pgstac-settings)
+    /// for more information on the settings and their meaning.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use pgstac::Client;
+    /// use tokio_postgres::NoTls;
+    /// let config = "postgresql://username:password@localhost:5432/postgis";
+    /// # tokio_test::block_on(async {
+    /// let (mut client, connection) = tokio_postgres::connect(config, NoTls).await.unwrap();
+    /// let client = Client::new(&client);
+    /// assert!(!client.context().await.unwrap());
+    /// # });
+    /// ```
+    pub async fn context(&self) -> Result<bool> {
+        self.string("get_setting", &[&"context"])
+            .await
+            .map(|value| value == "on")
+    }
+
+    /// Sets the value of the `context` **pgstac** setting.
+    ///
+    /// This setting defaults to "off".  See [the **pgstac**
+    /// docs](https://github.com/stac-utils/pgstac/blob/main/docs/src/pgstac.md#pgstac-settings)
+    /// for more information on the settings and their meaning.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use pgstac::Client;
+    /// use tokio_postgres::NoTls;
+    /// let config = "postgresql://username:password@localhost:5432/postgis";
+    /// # tokio_test::block_on(async {
+    /// let (mut client, connection) = tokio_postgres::connect(config, NoTls).await.unwrap();
+    /// let client = Client::new(&client);
+    /// client.set_context(true).await.unwrap();
+    /// # });
+    /// ```
+    pub async fn set_context(&self, enable: bool) -> Result<()> {
+        let value = if enable { "on" } else { "off" };
+        self.0.execute(
+            "INSERT INTO pgstac_settings (name, value) VALUES ('context', $1) ON CONFLICT ON CONSTRAINT pgstac_settings_pkey DO UPDATE SET value = excluded.value;",
+            &[&value],
+        ).await.map(|_| ()).map_err(Error::from)
     }
 
     /// Fetches all collections.
@@ -199,8 +270,14 @@ mod tests {
     }
 
     #[pgstac_test]
-    async fn setting(client: &Client<'_, Transaction<'_>>) {
-        assert_eq!(client.setting("context").await.unwrap(), "off");
+    async fn context(client: &Client<'_, Transaction<'_>>) {
+        assert!(!client.context().await.unwrap());
+    }
+
+    #[pgstac_test]
+    async fn set_context(client: &Client<'_, Transaction<'_>>) {
+        client.set_context(true).await.unwrap();
+        assert!(client.context().await.unwrap());
     }
 
     #[pgstac_test]

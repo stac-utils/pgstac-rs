@@ -2,7 +2,8 @@
 //!
 //! # Examples
 //!
-//! [Client] provides an interface to query a **pgstac** database. It can be created from anything that implements [tokio_postgres::GenericClient].
+//! [Client] provides an interface to query a **pgstac** database.
+//! It can be created from anything that implements [tokio_postgres::GenericClient].
 //!
 //! ```
 //! use pgstac::Client;
