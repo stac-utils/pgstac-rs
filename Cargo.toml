@@ -1,6 +1,6 @@
 [package]
 name = "pgstac"
-version = "0.0.5"
+version = "0.0.6"
 authors = ["Pete Gadomski <pete.gadomski@gmail.com>"]
 edition = "2021"
 description = "Rust interface for pgstac"
@@ -14,7 +14,7 @@ categories = ["database", "data-structures", "science"]
 geojson = "0.24"
 serde = "1"
 serde_json = "1"
-stac = { version = "0.5" }
+stac = { version = "0.6" }
 stac-api = { version = "0.3" }
 thiserror = "1"
 tokio-postgres = { version = "0.7", features = ["with-serde_json-1"] }

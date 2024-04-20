@@ -6,16 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [0.0.6] - 2024-04-20
+
+- Bump **stac** version to v0.6
+- Bump **pgstac** version to v0.8.5
+
 ## [0.0.5] - 2023-09-25
 
-- Bump stac-api version to v0.3.0
+- Bump **stac-api** version to v0.3.0
 
 ## [0.0.4] - 2023-07-07
 
-### Changed
-
-- Bump stac-rs version to v0.5
-- Bump pgstac version to v0.6.13 ([#2](https://github.com/stac-utils/pgstac-rs/pull/2))
+- Bump **stac** version to v0.5
+- Bump **pgstac** version to v0.6.13 ([#2](https://github.com/stac-utils/pgstac-rs/pull/2))
 
 ## [0.0.3] - 2023-01-08
 
@@ -37,7 +40,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 Initial release
 
-[unreleased]: https://github.com/stac-utils/pgstac-rs/compare/v0.0.5...HEAD
+[unreleased]: https://github.com/stac-utils/pgstac-rs/compare/v0.0.6...HEAD
+[0.0.6]: https://github.com/stac-utils/pgstac-rs/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/stac-utils/pgstac-rs/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/stac-utils/pgstac-rs/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/stac-utils/pgstac-rs/compare/v0.0.2...v0.0.3
