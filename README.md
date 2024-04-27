@@ -5,6 +5,8 @@
 [![Crates.io](https://img.shields.io/crates/v/pgstac?style=for-the-badge)](https://crates.io/crates/pgstac)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg?style=for-the-badge)](./CODE_OF_CONDUCT)
 
+**This code in this repository has been moved to <https://github.com/stac-utils/stac-rs> (<https://github.com/stac-utils/stac-rs/pull/246>)***
+
 Rust interface for [pgstac](https://github.com/stac-utils/pgstac).
 
 ## Usage
